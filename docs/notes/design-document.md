@@ -2,7 +2,7 @@
 id: c9n70lmsre6btys3lh8z2to
 title: Design Document
 desc: ''
-updated: 1678932682920
+updated: 1678956741153
 created: 1678929347518
 ---
 
@@ -53,6 +53,39 @@ CREATE TABLE IF NOT EXISTS user_emails(
 );
 ```
 
-## Table query
+## Insert data
 
-> TODO
+Once a table is created a you'll need to be able to insert data into the table. Since `v` is unknown, Rust will need to be able to handle any input, we'll rely on SQLite to inform us if it is completely wrong.
+
+```mermaid
+flowchart TD
+  table(user_emails)
+  subgraph data [Input]
+    direction LR
+    k-->jimmy
+    v-->email("jimmy@email.com")
+  end
+  table--insert-->data
+  subgraph db [SQLite]
+    direction LR
+    cmd[INSERT INTO]
+    cmd-->d[(Database)]
+  end
+  data--"(k,v)"-->db
+```
+
+### Insert API
+
+```rust
+let database = Sqlite:connect();
+let table = database.create_table("user_emails");
+
+table.insert("jimmy", "jimmy@email.com")?;
+```
+
+### Insert Query
+
+```sql
+INSERT INTO user_emails (k, v)
+VALUES(?, ?);
+```
