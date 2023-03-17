@@ -1,4 +1,6 @@
-use rusqlite::{Connection, Error, Result};
+use rusqlite::{params, Connection, Error, Result, ToSql};
+
+type RusqilteResponse = Result<usize, Error>;
 
 const KEY_COLUMN: &str = "k";
 const VALUE_COLUMN: &str = "v";
@@ -48,7 +50,7 @@ impl<'a> Table<'a> {
     ///
     /// users_table.create(&connection)?;
     /// ```
-    pub fn create(&self, connection: &Connection) -> Result<usize, Error> {
+    pub fn create(&self, connection: &Connection) -> RusqilteResponse {
         let result = connection.execute(
             &format!(
                 "CREATE TABLE IF NOT EXISTS {} (
@@ -58,6 +60,43 @@ impl<'a> Table<'a> {
                 self.name, KEY_COLUMN, VALUE_COLUMN
             ),
             (),
+        )?;
+
+        Ok(result)
+    }
+
+    /// Inserts some data into the table
+    ///
+    /// This will insert a key & value into the given table. The key
+    /// is a string slice while the value needs to adhere to the
+    /// [ToSql](https://docs.rs/rusqlite/latest/rusqlite/trait.ToSql.html) trait
+    /// provided by russqlite.
+    ///
+    /// ### Example
+    ///
+    /// ```
+    /// use db::Table;
+    /// use rusqlite::Connection;
+    ///
+    /// let connection = Connection::open("./test.sqlite")?;
+    /// let users_table = Table::new("users");
+    ///
+    /// users_table.create(&connection)?;
+    ///
+    /// users_table.insert(&connection, "jimmy", "abc@abc.com")?;
+    /// ```
+    pub fn insert<T: ToSql + ?Sized>(
+        &self,
+        connection: &Connection,
+        key: &str,
+        value: &T,
+    ) -> RusqilteResponse {
+        let result = connection.execute(
+            &format!(
+                "INSERT INTO {} ({}, {}) VALUES(?1, ?2);",
+                self.name, KEY_COLUMN, VALUE_COLUMN
+            ),
+            params![key, value],
         )?;
 
         Ok(result)
@@ -89,6 +128,26 @@ mod test {
         let result = connection.execute("DROP TABLE test", ());
 
         assert_eq!(true, result.is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_table_insert() -> Result<(), Error> {
+        let conn = Connection::open_in_memory()?;
+        let table = Table::new("test");
+        table.create(&conn)?;
+
+        let result = table.insert(&conn, "jimmy", "abc@abc.com");
+        assert_eq!(true, result.is_ok());
+
+        let mut stmt = conn.prepare(&format!("SELECT * from {}", table.name))?;
+        let mut rows = stmt.query([])?;
+        let first = rows.next()?;
+
+        assert_eq!(true, first.is_some());
+        let key: String = first.unwrap().get(0)?;
+        assert_eq!("jimmy".to_owned(), key);
 
         Ok(())
     }
