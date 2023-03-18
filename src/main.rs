@@ -17,10 +17,9 @@ async fn insert(path: web::Path<(String, String)>) -> Result<HttpResponse, Error
     let (key, value) = path.into_inner();
     let connection = Connection::open("./test.sqlite")
         .map_err(|_| ErrorInternalServerError("Unable to connect to database"))?;
-    let table = Table::new("user_emails");
 
-    table
-        .insert(&connection, &key, &value)
+    Table::existing("user_emails", &connection)
+        .insert(&key, &value)
         .map_err(|_| ErrorBadRequest("Unable to insert values"))?;
 
     Ok(HttpResponse::Ok().body("Beans"))
