@@ -10,6 +10,12 @@ pub struct Table<'a> {
     name: &'a str,
 }
 
+#[derive(Debug)]
+pub struct DatabaseTable<'a> {
+    name: &'a str,
+    connection: &'a Connection,
+}
+
 impl<'a> Table<'a> {
     /// Creates a new Table Struct
     ///
@@ -35,6 +41,9 @@ impl<'a> Table<'a> {
     /// key, must be unique and can't be null. The value column remains
     /// unknown for flexibility.
     ///
+    /// This returns a instance of `DatabaseTable` which is used to
+    /// perform operations on your newly created table
+    ///
     /// Both the `Connection::open` and `create` method return a
     /// [rusqlite](https://docs.rs/rusqlite/latest/rusqlite/)
     /// [`Result`](https://docs.rs/rusqlite/latest/rusqlite/type.Result.html) type.
@@ -50,8 +59,8 @@ impl<'a> Table<'a> {
     ///
     /// users_table.create(&connection)?;
     /// ```
-    pub fn create(&self, connection: &Connection) -> RusqilteResponse {
-        let result = connection.execute(
+    pub fn create(&'a self, connection: &'a Connection) -> Result<DatabaseTable, Error> {
+        connection.execute(
             &format!(
                 "CREATE TABLE IF NOT EXISTS {} (
                 {} varchar(255) PRIMARY KEY UNIQUE NOT NULL,
@@ -62,7 +71,44 @@ impl<'a> Table<'a> {
             (),
         )?;
 
-        Ok(result)
+        Ok(DatabaseTable::new(&self.name, &connection))
+    }
+
+    /// Returns a instance of `DatabaseTable` without running a `CREATE` command
+    ///
+    /// If you are sure a table has been previously created you can skip
+    /// the `create` method to get your `DatabaseTable` instance.
+    ///
+    /// **DANGER:** if your table doesn't exist, every action performed on the
+    /// `DatabaseTable` will fail.
+    ///
+    /// ### Example
+    ///
+    /// ```
+    /// use db::Table;
+    /// use rusqlite::Connection;
+    ///
+    /// let connection = Connection::open("./test.sqlite")?;
+    /// let table = Table::as_existing("users", &connection);
+    ///
+    /// table.insert(...)
+    /// ```
+    pub fn existing(name: &'a str, connection: &'a Connection) -> DatabaseTable<'a> {
+        DatabaseTable::new(&name, &connection)
+    }
+}
+
+impl<'a> DatabaseTable<'a> {
+    /// Creates a new instance of the Database table with a reference to
+    /// a connection
+    ///
+    /// Operations to interact with the data is tied to this struct to ensure
+    /// the user of the API is sure that the table has been created
+    /// previously.
+    ///
+    /// This is a private method with is called from `Table`.
+    fn new(name: &'a str, connection: &'a Connection) -> Self {
+        DatabaseTable { name, connection }
     }
 
     /// Inserts some data into the table
@@ -85,13 +131,8 @@ impl<'a> Table<'a> {
     ///
     /// users_table.insert(&connection, "jimmy", "abc@abc.com")?;
     /// ```
-    pub fn insert<T: ToSql + ?Sized>(
-        &self,
-        connection: &Connection,
-        key: &str,
-        value: &T,
-    ) -> RusqilteResponse {
-        let result = connection.execute(
+    pub fn insert<T: ToSql + ?Sized>(&self, key: &str, value: &T) -> RusqilteResponse {
+        let result = self.connection.execute(
             &format!(
                 "INSERT INTO {} ({}, {}) VALUES(?1, ?2);",
                 self.name, KEY_COLUMN, VALUE_COLUMN
@@ -136,9 +177,9 @@ mod test {
     fn test_table_insert() -> Result<(), Error> {
         let conn = Connection::open_in_memory()?;
         let table = Table::new("test");
-        table.create(&conn)?;
+        let table = table.create(&conn)?;
 
-        let result = table.insert(&conn, "jimmy", "abc@abc.com");
+        let result = table.insert("jimmy", "abc@abc.com");
         assert_eq!(true, result.is_ok());
 
         let mut stmt = conn.prepare(&format!("SELECT * from {}", table.name))?;
