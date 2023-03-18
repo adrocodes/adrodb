@@ -192,4 +192,19 @@ mod test {
 
         Ok(())
     }
+
+    #[test]
+    fn test_existing_table() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::existing("nope", &conn);
+        let result = table.insert("key", "value");
+
+        assert_eq!(true, result.is_err());
+
+        let table = Table::new("users");
+        let table = table.create(&conn).unwrap();
+        let result = table.insert("key", "value");
+
+        assert_eq!(true, result.is_ok());
+    }
 }
