@@ -202,9 +202,9 @@ mod test {
         assert_eq!(true, result.is_err());
 
         let table = Table::new("users");
-        let table = table.create(&conn).unwrap();
-        let result = table.insert("key", "value");
+        table.create(&conn).unwrap();
+        let table = Table::existing("users", &conn).insert("key1", "value");
 
-        assert_eq!(true, result.is_ok());
+        assert_eq!(true, table.is_ok());
     }
 }
