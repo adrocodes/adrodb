@@ -19,7 +19,7 @@ async fn insert(path: web::Path<(String, String)>) -> Result<HttpResponse, Error
         .map_err(|_| ErrorInternalServerError("Unable to connect to database"))?;
 
     Table::existing("user_emails", &connection)
-        .insert(&key, &value)
+        .set(&key, &value)
         .map_err(|_| ErrorBadRequest("Unable to insert values"))?;
 
     Ok(HttpResponse::Ok().body("Beans"))

@@ -131,7 +131,7 @@ impl<'a> DatabaseTable<'a> {
     ///
     /// users_table.insert(&connection, "jimmy", "abc@abc.com")?;
     /// ```
-    pub fn insert<T: ToSql + ?Sized>(&self, key: &str, value: &T) -> RusqilteResponse {
+    pub fn set<T: ToSql + ?Sized>(&self, key: &str, value: &T) -> RusqilteResponse {
         let result = self.connection.execute(
             &format!(
                 "INSERT INTO {} ({}, {}) VALUES(?1, ?2);",
@@ -208,7 +208,7 @@ mod test {
         let table = Table::new("test");
         let table = table.create(&conn)?;
 
-        let result = table.insert("jimmy", "abc@abc.com");
+        let result = table.set("jimmy", "abc@abc.com");
         assert_eq!(true, result.is_ok());
 
         let mut stmt = conn.prepare(&format!("SELECT * from {}", table.name))?;
@@ -226,13 +226,13 @@ mod test {
     fn test_existing_table() {
         let conn = Connection::open_in_memory().unwrap();
         let table = Table::existing("nope", &conn);
-        let result = table.insert("key", "value");
+        let result = table.set("key", "value");
 
         assert_eq!(true, result.is_err());
 
         let table = Table::new("users");
         table.create(&conn).unwrap();
-        let table = Table::existing("users", &conn).insert("key1", "value");
+        let table = Table::existing("users", &conn).set("key1", "value");
 
         assert_eq!(true, table.is_ok());
     }
@@ -254,7 +254,7 @@ mod test {
         let table = Table::new("users");
         let table = table.create(&conn).unwrap();
 
-        table.insert("jimmy", "abc").unwrap();
+        table.set("jimmy", "abc").unwrap();
 
         let result = table.get::<String>("jimmy");
 
@@ -268,9 +268,9 @@ mod test {
         let table = Table::new("users");
         let table = table.create(&conn).unwrap();
 
-        table.insert("jim", "123").unwrap();
-        table.insert("jimmy", &123).unwrap();
-        table.insert("bob", &true).unwrap();
+        table.set("jim", "123").unwrap();
+        table.set("jimmy", &123).unwrap();
+        table.set("bob", &true).unwrap();
 
         let result = table.get::<i32>("jimmy");
         assert_eq!(123, result.unwrap());
