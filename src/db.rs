@@ -261,4 +261,24 @@ mod test {
         assert_eq!(true, result.is_ok());
         assert_eq!("abc", result.unwrap());
     }
+
+    #[test]
+    fn test_casting_results() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::new("users");
+        let table = table.create(&conn).unwrap();
+
+        table.insert("jim", "123").unwrap();
+        table.insert("jimmy", &123).unwrap();
+        table.insert("bob", &true).unwrap();
+
+        let result = table.get::<i32>("jimmy");
+        assert_eq!(123, result.unwrap());
+
+        let result = table.get::<String>("jim");
+        assert_eq!("123", result.unwrap());
+
+        let result = table.get::<bool>("bob");
+        assert_eq!(true, result.unwrap());
+    }
 }
