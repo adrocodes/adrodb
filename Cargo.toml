@@ -2,6 +2,15 @@
 name = "adrodb"
 version = "0.1.0"
 edition = "2021"
+authors = ["adrocodes adrocodes@users.noreply.github.com"]
+description = "A simple key-value store backed by sqlite"
+readme = "README.md"
+repository = "https://github.com/adrocodes/adrodb"
+keywords = ["rust", "key-value store", "sqlite", "rusqlite"]
+
+[lib]
+name = "adrodb"
+path = "src/lib.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,4 +25,6 @@ edition = "2021"
 # libraries built around `rusqlite` should probably not enable it, which
 # is why it is not a default feature -- it could become hard to disable.
 rusqlite = { version = "0.28.0", features = ["bundled"] }
+
+[dev-dependencies]
 actix-web = "4"

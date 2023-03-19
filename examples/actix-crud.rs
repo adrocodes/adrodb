@@ -1,10 +1,10 @@
-mod db;
+extern crate adrodb;
 
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
     get, post, web, App, Error, HttpResponse, HttpServer, Responder,
 };
-use db::Table;
+use adrodb::Table;
 use rusqlite::{Connection, Result};
 
 #[get("/")]
