@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection, Error, Result, ToSql};
+use rusqlite::{params, types::FromSql, Connection, Error, Result, ToSql};
 
 type RusqilteResponse = Result<usize, Error>;
 
@@ -142,6 +142,35 @@ impl<'a> DatabaseTable<'a> {
 
         Ok(result)
     }
+
+    /// Get a value in the database by key
+    ///
+    /// Given a key a query will be made to attempt to get a
+    /// value from the database of type `T`. Failure could mean
+    /// the SQL query failed, casting value or no results were found
+    ///
+    /// ### Example
+    ///
+    /// ```
+    /// use db::Table;
+    /// use rusqlite::Connection;
+    ///
+    /// let connection = Connection::open("./test.sqlite")?;
+    /// let table = Table::existing("users");
+    ///
+    /// table.insert("jimmy", "abc")?;
+    ///
+    /// let result = table.get::<String>("jimmy");
+    /// ```
+    pub fn get<T: FromSql>(&self, key: &str) -> Result<T, Error> {
+        let mut statement = self.connection.prepare(&format!(
+            "SELECT {} FROM {} WHERE {} = ?1 LIMIT 1",
+            VALUE_COLUMN, self.name, KEY_COLUMN
+        ))?;
+        let value = statement.query_row(params![key], |row| row.get::<usize, T>(0))?;
+
+        Ok(value)
+    }
 }
 
 #[cfg(test)]
@@ -206,5 +235,30 @@ mod test {
         let table = Table::existing("users", &conn).insert("key1", "value");
 
         assert_eq!(true, table.is_ok());
+    }
+
+    #[test]
+    fn test_getting_missing_key() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::new("users");
+        let table = table.create(&conn).unwrap();
+
+        let result = table.get::<String>("jimmy");
+
+        assert_eq!(true, result.is_err());
+    }
+
+    #[test]
+    fn test_getting_valid_key() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::new("users");
+        let table = table.create(&conn).unwrap();
+
+        table.insert("jimmy", "abc").unwrap();
+
+        let result = table.get::<String>("jimmy");
+
+        assert_eq!(true, result.is_ok());
+        assert_eq!("abc", result.unwrap());
     }
 }
