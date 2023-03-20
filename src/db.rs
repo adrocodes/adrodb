@@ -25,7 +25,7 @@ impl<'a> Table<'a> {
     /// ### Example
     ///
     /// ```
-    /// use db::Table;
+    /// use adrodb::Table;
     ///
     /// let users_table = Table::new("users");
     /// ```
@@ -51,7 +51,7 @@ impl<'a> Table<'a> {
     /// ### Example
     ///
     /// ```
-    /// use db::Table;
+    /// use adrodb::Table;
     /// use rusqlite::Connection;
     ///
     /// let connection = Connection::open("./test.sqlite")?;
@@ -85,7 +85,7 @@ impl<'a> Table<'a> {
     /// ### Example
     ///
     /// ```
-    /// use db::Table;
+    /// use adrodb::Table;
     /// use rusqlite::Connection;
     ///
     /// let connection = Connection::open("./test.sqlite")?;
@@ -121,7 +121,7 @@ impl<'a> DatabaseTable<'a> {
     /// ### Example
     ///
     /// ```
-    /// use db::Table;
+    /// use adrodb::Table;
     /// use rusqlite::Connection;
     ///
     /// let connection = Connection::open("./test.sqlite")?;
@@ -152,7 +152,7 @@ impl<'a> DatabaseTable<'a> {
     /// ### Example
     ///
     /// ```
-    /// use db::Table;
+    /// use adrodb::Table;
     /// use rusqlite::Connection;
     ///
     /// let connection = Connection::open("./test.sqlite")?;
@@ -180,7 +180,7 @@ impl<'a> DatabaseTable<'a> {
     ///
     /// ### Example
     /// ```
-    /// use db::Table;
+    /// use adrodb::Table;
     /// use rusqlite::Connection;
     ///
     /// let connection = Connection::open("./test.sqlite")?;
