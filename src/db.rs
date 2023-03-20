@@ -171,6 +171,30 @@ impl<'a> DatabaseTable<'a> {
 
         Ok(value)
     }
+
+    /// Removes data by the key
+    ///
+    /// Removes data from the table based on a given key. The request
+    /// returns the number of affected rows. If the key is missing
+    /// from the table the result will be `Ok(usize)`.
+    ///
+    /// ### Example
+    /// ```
+    /// use db::Table;
+    /// use rusqlite::Connection;
+    ///
+    /// let connection = Connection::open("./test.sqlite")?;
+    /// let table = Table::existing("users");
+    ///
+    /// let result = table.remove("jimmy");
+    /// ```
+    pub fn remove(&self, key: &str) -> RusqilteResponse {
+        let result = self.connection.execute(
+            &format!("DELETE FROM {} WHERE {} = ?1", self.name, KEY_COLUMN),
+            params![key],
+        )?;
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
@@ -280,5 +304,33 @@ mod test {
 
         let result = table.get::<bool>("bob");
         assert_eq!(true, result.unwrap());
+    }
+
+    #[test]
+    fn test_removing_by_key() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::new("users");
+        let db = table.create(&conn).unwrap();
+        db.set("jimmy", "bean").unwrap();
+
+        let jimmy = db.get::<String>("jimmy").unwrap();
+        assert_eq!(jimmy, "bean");
+
+        db.remove("jimmy").unwrap();
+
+        let jimmy = db.get::<String>("jimmy");
+        assert_eq!(true, jimmy.is_err());
+    }
+
+    #[test]
+    fn test_removing_by_missing_key() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::new("users");
+        let db = table.create(&conn).unwrap();
+
+        let result = db.remove("unknown");
+
+        assert_eq!(true, result.is_ok());
+        assert_eq!(0, result.unwrap());
     }
 }
