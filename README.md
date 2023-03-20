@@ -55,4 +55,4 @@ fn main() -> Result<(), Error> {
 }
 ```
 
-The `Table::existing` method will not do a check if the table does exist however, the `insert` and `get` methods will fail as a result.
+The `Table::existing` method will not do a check if the table does exist however, the `set` and `get` methods will fail as a result.
