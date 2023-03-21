@@ -116,7 +116,7 @@ impl<'a> DatabaseTable<'a> {
     /// This will insert a key & value into the given table. The key
     /// is a string slice while the value needs to adhere to the
     /// [ToSql](https://docs.rs/rusqlite/latest/rusqlite/trait.ToSql.html) trait
-    /// provided by russqlite.
+    /// provided by rusqlite.
     ///
     /// ### Example
     ///
@@ -129,7 +129,7 @@ impl<'a> DatabaseTable<'a> {
     ///
     /// users_table.create(&connection)?;
     ///
-    /// users_table.insert(&connection, "jimmy", "abc@abc.com")?;
+    /// users_table.insert("jimmy", "abc@abc.com")?;
     /// ```
     pub fn set<T: ToSql + ?Sized>(&self, key: &str, value: &T) -> RusqilteResponse {
         let result = self.connection.execute(
@@ -193,6 +193,38 @@ impl<'a> DatabaseTable<'a> {
             &format!("DELETE FROM {} WHERE {} = ?1", self.name, KEY_COLUMN),
             params![key],
         )?;
+        Ok(result)
+    }
+
+    /// Updates some data in the table
+    ///
+    /// This will update value based on the provided key in a given table. The key
+    /// is a string slice while the value needs to adhere to the
+    /// [ToSql](https://docs.rs/rusqlite/latest/rusqlite/trait.ToSql.html) trait
+    /// provided by rusqlite.
+    ///
+    /// ### Example
+    ///
+    /// ```
+    /// use adrodb::Table;
+    /// use rusqlite::Connection;
+    ///
+    /// let connection = Connection::open("./test.sqlite")?;
+    /// let users_table = Table::new("users");
+    ///
+    /// // Create & Set
+    ///
+    /// users_table.update("jimmy", "abc@abc.com")?;
+    /// ```
+    pub fn update<T: ToSql + ?Sized>(&self, key: &str, value: &T) -> RusqilteResponse {
+        let result = self.connection.execute(
+            &format!(
+                "UPDATE {} SET {} = ?1 WHERE {} = ?2",
+                self.name, VALUE_COLUMN, KEY_COLUMN
+            ),
+            params![value, key],
+        )?;
+
         Ok(result)
     }
 }
@@ -332,5 +364,39 @@ mod test {
 
         assert_eq!(true, result.is_ok());
         assert_eq!(0, result.unwrap());
+    }
+
+    #[test]
+    fn test_updating_existing_value() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::new("users");
+        let db = table.create(&conn).unwrap();
+
+        db.set("jimmy", "123").unwrap();
+
+        let result = db.update("jimmy", "456");
+
+        assert_eq!(true, result.is_ok());
+        assert_eq!(1, result.unwrap());
+
+        let jimmy = db.get::<String>("jimmy").unwrap();
+
+        assert_eq!(jimmy, "456");
+    }
+
+    #[test]
+    fn test_updating_missing_value() {
+        let conn = Connection::open_in_memory().unwrap();
+        let table = Table::new("users");
+        let db = table.create(&conn).unwrap();
+
+        let result = db.update("jimmy", "456");
+
+        assert_eq!(true, result.is_ok());
+        assert_eq!(0, result.unwrap());
+
+        let jimmy = db.get::<String>("jimmy");
+
+        assert_eq!(true, jimmy.is_err());
     }
 }
