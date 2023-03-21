@@ -3,7 +3,7 @@ extern crate adrodb;
 use actix_web::{
     delete,
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
-    get, post, web, App, Error, HttpResponse, HttpServer, Responder,
+    get, patch, post, web, App, Error, HttpResponse, HttpServer, Responder,
 };
 use adrodb::Table;
 use rusqlite::{Connection, Result};
@@ -23,7 +23,7 @@ async fn insert(path: web::Path<(String, String)>) -> Result<HttpResponse, Error
         .set(&key, &value)
         .map_err(|_| ErrorBadRequest("Unable to insert values"))?;
 
-    Ok(HttpResponse::Ok().body("Beans"))
+    Ok(HttpResponse::Ok().body(format!("Record created: '{}'", key)))
 }
 
 #[get("/{key}")]
@@ -52,6 +52,19 @@ async fn delete(path: web::Path<String>) -> Result<HttpResponse, Error> {
     Ok(HttpResponse::Ok().body(format!("Rows affected: {}", value)))
 }
 
+#[patch("/{key}/{value}")]
+async fn update(path: web::Path<(String, String)>) -> Result<HttpResponse, Error> {
+    let (key, value) = path.into_inner();
+    let connection = Connection::open("./test.sqlite")
+        .map_err(|_| ErrorInternalServerError("Unable to connect to database"))?;
+
+    let value = Table::existing("user_emails", &connection)
+        .update(&key, &value)
+        .map_err(|_| ErrorNotFound("Unable to delete by key"))?;
+
+    Ok(HttpResponse::Ok().body(format!("Rows affected: {}", value)))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let conn = Connection::open("./test.sqlite");
@@ -68,6 +81,7 @@ async fn main() -> std::io::Result<()> {
             .service(insert)
             .service(get)
             .service(delete)
+            .service(update)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
